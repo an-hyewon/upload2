@@ -69,7 +69,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private final static String BASE_URL = "http://49.50.172.208:8080/:8080/";
+    private final static String BASE_URL = "http://49.50.172.208:8080/";
 
     HashMap<String, RequestBody> map = new HashMap<>();
 
@@ -346,7 +346,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 Log.i("single choice", i+" : "+tempUri.toString());
                                 imagePath = getPathFromURI(tempUri);
                                 imageListUri.add(imagePath);
-                                realUri.add(Uri.parse(imagePath));
+//                                realUri.add(Uri.parse(imagePath));
+                                realUri.add(Uri.fromFile(new File(imagePath)));
 //                                Cursor cursor = getContentResolver().query(tempUri, filePathColumn, null, null, null);
 //                                if (cursor == null)
 //                                    Log.e("TAG", "cursor is null");
@@ -542,8 +543,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void multipartImageUpload(int index) {
         try {
-            File file = new File(String.valueOf(realUri.get(index)), "image" + ".png");
-
+            String user_id = "abc";
+            String user_email = "abc@gmail.com";
+            File file = new File(imageListUri.get(index));
+//
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             mBitmap.get(index).compress(Bitmap.CompressFormat.PNG, 0, bos);
             byte[] bitmapdata = bos.toByteArray();
@@ -554,44 +557,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             fos.close();
 
 
-//            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-//            MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), reqFile);
-//            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
-//
-//            Call<ResponseBody> req = serviceApi.postImage(body, id);
-//            req.enqueue(new Callback<ResponseBody>() {
-//                @Override
-//                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-//                    if (response.code() == 200) {
-//                        textView.setText("Uploaded Successfully!");
-//                        textView.setTextColor(Color.BLUE);
-//                    }
-//                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
-//                }
-//
-//                @Override
-//                public void onFailure(Call<ResponseBody> call, Throwable t) {
-//                    textView.setText("Uploaded Failed!");
-//                    textView.setTextColor(Color.RED);
-//                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
-//                    t.printStackTrace();
-//                }
-//            });
-
-            String user_id = "abc";
-            String user_email = "abc@gmail.com";
+            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+            MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), reqFile);
             RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
-            ArrayList<MultipartBody.Part> files = new ArrayList<>();
-            for (int i =0; i<realUri.size(); ++i) {
-                // Uri 타입의 파일경로를 가지는 RequestBody 객체 생성
-                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-                // RequestBody로 Multipart.Part 객체 생성
-                MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileBody);
-                // 추가
-                files.add(filePart);
-            }
-            Call<ResponseBody> requestfile = serviceApi.request(files, id);
-            requestfile.enqueue(new Callback<ResponseBody>() {
+
+            Call<ResponseBody> req = serviceApi.postImage(body, id);
+            req.enqueue(new Callback<ResponseBody>() {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                     if (response.code() == 200) {
@@ -609,6 +580,47 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     t.printStackTrace();
                 }
             });
+
+//            Log.d("imageListUri", imageListUri.get(index));
+//            Log.d("realUri", String.valueOf(realUri.get(index)));
+//            Uri returnedUri = Uri.parse("file://"+imageListUri.get(index));
+//            InputStream inputStream = null;
+//            inputStream = getBaseContext().getContentResolver().openInputStream(realUri.get(index));
+//            mBitmap.set(index, BitmapFactory.decodeStream(inputStream));
+//            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+//            mBitmap.get(index).compress(Bitmap.CompressFormat.JPEG, 20, byteArrayOutputStream);
+
+
+//            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+//            ArrayList<MultipartBody.Part> files = new ArrayList<>();
+//            for (int i =0; i<realUri.size(); ++i) {
+//                // Uri 타입의 파일경로를 가지는 RequestBody 객체 생성
+//                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), byteArrayOutputStream.toByteArray());
+////                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+//                // RequestBody로 Multipart.Part 객체 생성
+//                MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileBody);
+//                // 추가
+//                files.add(filePart);
+//            }
+//            Call<ResponseBody> requestfile = serviceApi.request(files, id);
+//            requestfile.enqueue(new Callback<ResponseBody>() {
+//                @Override
+//                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+//                    if (response.code() == 200) {
+//                        textView.setText("Uploaded Successfully!");
+//                        textView.setTextColor(Color.BLUE);
+//                    }
+//                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
+//                }
+//
+//                @Override
+//                public void onFailure(Call<ResponseBody> call, Throwable t) {
+//                    textView.setText("Uploaded Failed!");
+//                    textView.setTextColor(Color.RED);
+//                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
+//                    t.printStackTrace();
+//                }
+//            });
 
 //            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
 ////            RequestBody email = RequestBody.create(MediaType.parse("text/plain"), user_email);

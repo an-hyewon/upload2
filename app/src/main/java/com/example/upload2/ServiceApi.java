@@ -14,6 +14,7 @@ import retrofit2.http.Part;
 import retrofit2.http.PartMap;
 
 public interface ServiceApi {
+    // 넘기는 값 user_id, multipart file
     @Multipart
     @POST("/users/image/new")
     Call<ResponseBody> postImage(@Part MultipartBody.Part image, @Part RequestBody id);
