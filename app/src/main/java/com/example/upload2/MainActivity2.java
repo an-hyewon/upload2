@@ -52,11 +52,13 @@ import java.util.List;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import retrofit2.Retrofit;
 
 import static android.Manifest.permission.CAMERA;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
@@ -126,6 +128,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         } else {
             /*..권한이 있는경우 실행할 코드....*/
         }
+        initRetrofitClient();
     }
 
     @Override
@@ -246,6 +249,11 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 
     private boolean canMakeSmores() {
         return (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1);
+    }
+
+    private void initRetrofitClient() {
+        OkHttpClient client = new OkHttpClient.Builder().build();
+        serviceApi = new Retrofit.Builder().baseUrl(BASE_URL).client(client).build().create(ServiceApi.class);
     }
 
     public Intent getPickImageChooserIntent() {
@@ -469,53 +477,12 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
             fos.close();
 
 
-            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-            MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), reqFile);
-            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
-
-            Call<ResponseBody> req = serviceApi.postImage(body, id);
-            req.enqueue(new Callback<ResponseBody>() {
-                @Override
-                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                    if (response.code() == 200) {
-                        textView.setText("Uploaded Successfully!");
-                        textView.setTextColor(Color.BLUE);
-                    }
-                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onFailure(Call<ResponseBody> call, Throwable t) {
-                    textView.setText("Uploaded Failed!");
-                    textView.setTextColor(Color.RED);
-                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
-                    t.printStackTrace();
-                }
-            });
-
-//            Log.d("imageListUri", imageListUri.get(index));
-//            Log.d("realUri", String.valueOf(realUri.get(index)));
-//            Uri returnedUri = Uri.parse("file://"+imageListUri.get(index));
-//            InputStream inputStream = null;
-//            inputStream = getBaseContext().getContentResolver().openInputStream(realUri.get(index));
-//            mBitmap.set(index, BitmapFactory.decodeStream(inputStream));
-//            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-//            mBitmap.get(index).compress(Bitmap.CompressFormat.JPEG, 20, byteArrayOutputStream);
-
-
+//            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+//            MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), reqFile);
 //            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
-//            ArrayList<MultipartBody.Part> files = new ArrayList<>();
-//            for (int i =0; i<realUri.size(); ++i) {
-//                // Uri 타입의 파일경로를 가지는 RequestBody 객체 생성
-//                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), byteArrayOutputStream.toByteArray());
-////                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-//                // RequestBody로 Multipart.Part 객체 생성
-//                MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileBody);
-//                // 추가
-//                files.add(filePart);
-//            }
-//            Call<ResponseBody> requestfile = serviceApi.request(files, id);
-//            requestfile.enqueue(new Callback<ResponseBody>() {
+//
+//            Call<ResponseBody> req = serviceApi.postImage(body, id);
+//            req.enqueue(new Callback<ResponseBody>() {
 //                @Override
 //                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 //                    if (response.code() == 200) {
@@ -533,6 +500,47 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 //                    t.printStackTrace();
 //                }
 //            });
+
+            Log.d("imageListUri", imageListUri.get(index));
+            Log.d("realUri", String.valueOf(realUri.get(index)));
+            Uri returnedUri = Uri.parse("file://"+imageListUri.get(index));
+            InputStream inputStream = null;
+            inputStream = getBaseContext().getContentResolver().openInputStream(realUri.get(index));
+            mBitmap.set(index, BitmapFactory.decodeStream(inputStream));
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            mBitmap.get(index).compress(Bitmap.CompressFormat.JPEG, 20, byteArrayOutputStream);
+
+
+            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+            ArrayList<MultipartBody.Part> files = new ArrayList<>();
+            for (int i =0; i<realUri.size(); ++i) {
+                // Uri 타입의 파일경로를 가지는 RequestBody 객체 생성
+                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), byteArrayOutputStream.toByteArray());
+//                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+                // RequestBody로 Multipart.Part 객체 생성
+                MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileBody);
+                // 추가
+                files.add(filePart);
+            }
+            Call<ResponseBody> requestfile = serviceApi.request(files, id);
+            requestfile.enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                    if (response.code() == 200) {
+                        textView.setText("Uploaded Successfully!");
+                        textView.setTextColor(Color.BLUE);
+                    }
+                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    textView.setText("Uploaded Failed!");
+                    textView.setTextColor(Color.RED);
+                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
+                    t.printStackTrace();
+                }
+            });
 
 //            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
 ////            RequestBody email = RequestBody.create(MediaType.parse("text/plain"), user_email);
