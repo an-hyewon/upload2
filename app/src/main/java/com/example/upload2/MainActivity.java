@@ -72,8 +72,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private final static String BASE_URL = "http://49.50.172.208:8080/:8080/";
 
     HashMap<String, RequestBody> map = new HashMap<>();
-    String user_id = "abc";
-    String user_email = "abc@gmail.co.kr";
+
     String mediaPath;
     ServiceApi serviceApi;
     Uri picUri, photoUri;
@@ -579,6 +578,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                }
 //            });
 
+            String user_id = "abc";
+            String user_email = "abc@gmail.com";
             RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
             ArrayList<MultipartBody.Part> files = new ArrayList<>();
             for (int i =0; i<realUri.size(); ++i) {
