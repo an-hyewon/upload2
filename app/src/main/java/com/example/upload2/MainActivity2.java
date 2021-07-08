@@ -42,7 +42,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity2 extends AppCompatActivity implements View.OnClickListener{
 
-    private final static String BASE_URL = "";
+    private final static String BASE_URL = "http://49.50.172.208:8080";
     private final static int MULTIPLE_PERMISSION = 10235;
     private String[] PERMISSIONS = {
             android.Manifest.permission.READ_EXTERNAL_STORAGE,

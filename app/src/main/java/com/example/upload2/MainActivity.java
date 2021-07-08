@@ -50,6 +50,7 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import okhttp3.MediaType;
@@ -68,8 +69,11 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private final static String BASE_URL = "http://115.68.95.143:3307";
+    private final static String BASE_URL = "http://49.50.172.208:8080/:8080/";
 
+    HashMap<String, RequestBody> map = new HashMap<>();
+    String user_id = "abc";
+    String user_email = "abc@gmail.co.kr";
     String mediaPath;
     ServiceApi serviceApi;
     Uri picUri, photoUri;
@@ -539,8 +543,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void multipartImageUpload(int index) {
         try {
-            File filesDir = getBaseContext().getFilesDir();
-            File file = new File(filesDir, "image" + ".png");
+            File file = new File(String.valueOf(realUri.get(index)), "image" + ".png");
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             mBitmap.get(index).compress(Bitmap.CompressFormat.PNG, 0, bos);
@@ -552,12 +555,42 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             fos.close();
 
 
-            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-            MultipartBody.Part body = MultipartBody.Part.createFormData("upload", file.getName(), reqFile);
-            RequestBody name = RequestBody.create(MediaType.parse("text/plain"), "upload");
+//            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+//            MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), reqFile);
+//            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+//
+//            Call<ResponseBody> req = serviceApi.postImage(body, id);
+//            req.enqueue(new Callback<ResponseBody>() {
+//                @Override
+//                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+//                    if (response.code() == 200) {
+//                        textView.setText("Uploaded Successfully!");
+//                        textView.setTextColor(Color.BLUE);
+//                    }
+//                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
+//                }
+//
+//                @Override
+//                public void onFailure(Call<ResponseBody> call, Throwable t) {
+//                    textView.setText("Uploaded Failed!");
+//                    textView.setTextColor(Color.RED);
+//                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
+//                    t.printStackTrace();
+//                }
+//            });
 
-            Call<ResponseBody> req = serviceApi.postImage(body, name);
-            req.enqueue(new Callback<ResponseBody>() {
+            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+            ArrayList<MultipartBody.Part> files = new ArrayList<>();
+            for (int i =0; i<realUri.size(); ++i) {
+                // Uri 타입의 파일경로를 가지는 RequestBody 객체 생성
+                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+                // RequestBody로 Multipart.Part 객체 생성
+                MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileBody);
+                // 추가
+                files.add(filePart);
+            }
+            Call<ResponseBody> requestfile = serviceApi.request(files, id);
+            requestfile.enqueue(new Callback<ResponseBody>() {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                     if (response.code() == 200) {
@@ -575,6 +608,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     t.printStackTrace();
                 }
             });
+
+//            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+////            RequestBody email = RequestBody.create(MediaType.parse("text/plain"), user_email);
+//            map.put("id", id);
+////            map.put("email", email);
+//            File file2 = new File(imageListUri.get(index));
+//            InputStream inputStream = null;
+//            inputStream = getBaseContext().getContentResolver().openInputStream(realUri.get(index));
+//            mBitmap.set(index, BitmapFactory.decodeStream(inputStream));
+//            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+//            mBitmap.get(index).compress(Bitmap.CompressFormat.JPEG, 20, byteArrayOutputStream);
+//            RequestBody requestBody = RequestBody.create(MediaType.parse("image/jpg"), byteArrayOutputStream.toByteArray());
+//            MultipartBody.Part uploadFile = MultipartBody.Part.createFormData("postImg", file.getName() ,requestBody);
+//            serviceApi.postImages(uploadFile, map).enqueue(new Callback<ResponseBody>() {
+//                @Override
+//                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+//                    if (response.code() == 200) {
+//                        textView.setText("Uploaded Successfully!");
+//                        textView.setTextColor(Color.BLUE);
+//                    }
+//                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
+//                }
+//
+//                @Override
+//                public void onFailure(Call<ResponseBody> call, Throwable t) {
+//                    textView.setText("Uploaded Failed!");
+//                    textView.setTextColor(Color.RED);
+//                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
+//                    t.printStackTrace();
+//                }
+//            });
+
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
