@@ -3,11 +3,15 @@ package com.example.upload2;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ComponentName;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -17,10 +21,12 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.provider.Settings;
@@ -49,33 +55,42 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import static android.Manifest.permission.CAMERA;
+import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity2 extends AppCompatActivity implements View.OnClickListener{
 
-    private final static String BASE_URL = "http://49.50.172.208:8080";
+    private final static String BASE_URL = "http://49.50.172.208:8080/";
     private final static int MULTIPLE_PERMISSION = 10235;
     private String[] PERMISSIONS = {
             android.Manifest.permission.READ_EXTERNAL_STORAGE,
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            android.Manifest.permission.CAMERA
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.MANAGE_EXTERNAL_STORAGE
     };
-
+    String currentPhotoPath;
     String mediaPath;
     ServiceApi serviceApi;
+    Retrofit retrofit = null;
     Uri picUri, photoUri;
     Uri tempUri = null;
     private ArrayList<String> permissionsToRequest;
@@ -85,6 +100,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     private final static int IMAGE_RESULT = 200;
     public final static int REQUEST_CODE = 1;
     private static final int PERMISSION_REQUEST_CODE = 10;
+    private final static int REQUEST_IMAGE_CAPTURE = 130;
 
     private static final int REQUEST_CAMERA = 100;
     private String cacheFilePath = null;
@@ -123,12 +139,13 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         select.setOnClickListener(this);
         upload.setOnClickListener(this);
 
-        if (!hasPermissions(getBaseContext(), PERMISSIONS)) {
-            ActivityCompat.requestPermissions(MainActivity2.this, PERMISSIONS, MULTIPLE_PERMISSION);
-        } else {
-            /*..권한이 있는경우 실행할 코드....*/
-        }
-        initRetrofitClient();
+//        if (!hasPermissions(getBaseContext(), PERMISSIONS)) {
+//            ActivityCompat.requestPermissions(MainActivity2.this, PERMISSIONS, MULTIPLE_PERMISSION);
+//        } else {
+//            /*..권한이 있는경우 실행할 코드....*/
+//        }
+        askPermissions();
+//        initRetrofitClient();
     }
 
     @Override
@@ -138,9 +155,12 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
                 finish();
                 break;
             case R.id.camera:
+//                checkPermission();
+//                camera_open_intent();
                 startActivityForResult(getPickImageChooserIntent(), IMAGE_RESULT);
                 break;
             case R.id.select:
+//                checkPermission();
                 filePicker();
                 break;
             case R.id.upload:
@@ -154,6 +174,181 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
                     Toast.makeText(getBaseContext(), "Bitmap is null. Try again", Toast.LENGTH_SHORT).show();
                 }
                 break;
+        }
+    }
+
+    private void camera_open_intent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+                Log.e("Woongs",ex.getMessage().toString());
+            }
+
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri providerURI = FileProvider.getUriForFile( getBaseContext() , "com.example.upload2.fileprovider", photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, providerURI);
+                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            }
+        }
+    }
+
+    // 파일 생성
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        // 참고: getExternalFilesDir() 또는 getFilesDir()에서 제공한 디렉터리에 저장한 파일은 사용자가 앱을 제거할 때 삭제됩니다.
+
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+        // Save a file: path for use with ACTION_VIEW intents
+        currentPhotoPath = image.getAbsolutePath();
+
+        return image;
+    }
+
+    // 파일 저장
+    private void saveFile(Uri image_uri) {
+
+        ContentValues values = new ContentValues();
+        String fileName =  "woongs"+System.currentTimeMillis()+".png";
+        values.put(MediaStore.Images.Media.DISPLAY_NAME,fileName);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/*");
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.put(MediaStore.Images.Media.IS_PENDING, 1);
+        }
+
+        ContentResolver contentResolver = getContentResolver();
+        Uri item = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+        try {
+            ParcelFileDescriptor pdf = contentResolver.openFileDescriptor(item, "w", null);
+            if (pdf == null) {
+                Log.d("Woongs", "null");
+            } else {
+                byte[] inputData = getBytes(image_uri);
+                FileOutputStream fos = new FileOutputStream(pdf.getFileDescriptor());
+                fos.write(inputData);
+                fos.close();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    values.clear();
+                    values.put(MediaStore.Images.Media.IS_PENDING, 0);
+                    contentResolver.update(item, values, null, null);
+                }
+
+                // 갱신
+                galleryAddPic(fileName);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            Log.d("Woongs", "FileNotFoundException  : "+e.getLocalizedMessage());
+        } catch (Exception e) {
+            Log.d("Woongs", "FileOutputStream = : " + e.getMessage());
+        }
+    }
+
+    // Uri to ByteArr
+    public byte[] getBytes(Uri image_uri) throws IOException {
+        InputStream iStream = getContentResolver().openInputStream(image_uri);
+        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+        int bufferSize = 1024; // 버퍼 크기
+        byte[] buffer = new byte[bufferSize]; // 버퍼 배열
+
+        int len = 0;
+        // InputStream에서 읽어올 게 없을 때까지 바이트 배열에 쓴다.
+        while ((len = iStream.read(buffer)) != -1)
+            byteBuffer.write(buffer, 0, len);
+        return byteBuffer.toByteArray();
+    }
+
+    private void galleryAddPic(String Image_Path) {
+
+        Log.d("Woongs","갱신 : "+Image_Path);
+
+        // 이전 사용 방식
+        /*Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(Image_Path);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.context.sendBroadcast(mediaScanIntent);*/
+
+        File file = new File(Image_Path);
+        MediaScannerConnection.scanFile(getBaseContext(), new String[]{file.toString()}, null, null);
+    }
+
+    private void gallery_open_intent(){
+        Intent intent = new Intent(Intent.ACTION_PICK,MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(intent,REQUEST_CODE);
+    }
+
+    public void checkPermission(){
+        String[] permission_list = {
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+        };
+
+        //현재 안드로이드 버전이 6.0미만이면 메서드를 종료한다.
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
+            return;
+
+        for(String permission : permission_list){
+            //권한 허용 여부를 확인한다.
+            int chk = checkCallingOrSelfPermission(permission);
+            if(chk == PackageManager.PERMISSION_DENIED){
+                //권한 허용을여부를 확인하는 창을 띄운다
+                requestPermissions(permission_list,0);
+            }
+        }
+    }
+
+    public static Uri getImageContentUri(Context context, File imageFile) {
+        String filePath = imageFile.getAbsolutePath();
+        Cursor cursor = context.getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                new String[]{MediaStore.Images.Media._ID},
+                MediaStore.Images.Media.DATA + "=? ",
+                new String[]{filePath}, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
+            cursor.close();
+            return Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "" + id);
+        } else {
+            if (imageFile.exists()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentResolver resolver = context.getContentResolver();
+                    Uri picCollection = MediaStore.Images.Media
+                            .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                    ContentValues picDetail = new ContentValues();
+                    picDetail.put(MediaStore.Images.Media.DISPLAY_NAME, imageFile.getName());
+                    picDetail.put(MediaStore.Images.Media.MIME_TYPE, "image/jpg");
+                    picDetail.put(MediaStore.Images.Media.RELATIVE_PATH,"DCIM/" + UUID.randomUUID().toString());
+                    picDetail.put(MediaStore.Images.Media.IS_PENDING,1);
+                    Uri finaluri = resolver.insert(picCollection, picDetail);
+                    picDetail.clear();
+                    picDetail.put(MediaStore.Images.Media.IS_PENDING, 0);
+                    resolver.update(picCollection, picDetail, null, null);
+                    return finaluri;
+                }else {
+                    ContentValues values = new ContentValues();
+                    values.put(MediaStore.Images.Media.DATA, filePath);
+                    return context.getContentResolver().insert(
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                }
+
+            } else {
+                return null;
+            }
         }
     }
 
@@ -217,6 +412,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         permissions.add(CAMERA);
         permissions.add(WRITE_EXTERNAL_STORAGE);
         permissions.add(READ_EXTERNAL_STORAGE);
+        permissions.add(MANAGE_EXTERNAL_STORAGE);
         permissionsToRequest = findUnAskedPermissions(permissions);
 
 
@@ -251,9 +447,58 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         return (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1);
     }
 
-    private void initRetrofitClient() {
-        OkHttpClient client = new OkHttpClient.Builder().build();
-        serviceApi = new Retrofit.Builder().baseUrl(BASE_URL).client(client).build().create(ServiceApi.class);
+//    private void initRetrofitClient() {
+////        OkHttpClient client = new OkHttpClient.Builder().build();
+//
+//        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+//        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+//        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+//        clientBuilder.addInterceptor(loggingInterceptor);
+//
+//        Log.d("OkHttp","initMyAPI : "+BASE_URL);
+//
+//        retrofit = new Retrofit.Builder()
+//                .baseUrl(BASE_URL)
+//                .addConverterFactory(GsonConverterFactory.create())
+//                .client(clientBuilder.build())
+//                .build();
+//
+//        serviceApi = retrofit.create(ServiceApi.class);
+//    }
+
+    public Retrofit getClient() {
+        if (retrofit==null) {
+            retrofit = new Retrofit.Builder()
+                    .baseUrl(BASE_URL)
+                    .client(createOkHttpClient())
+                    .addConverterFactory(new NullOnEmptyConverterFactory())
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build();
+        }
+        return retrofit;
+    }
+
+    public OkHttpClient createOkHttpClient() {
+        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+
+        // 네트워크 통신 로그(서버로 보내는 파라미터 및 받는 파라미터) 보기
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                .connectTimeout(100, TimeUnit.SECONDS)
+                .readTimeout(100, TimeUnit.SECONDS)
+                .writeTimeout(100, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .addInterceptor(interceptor)
+                .addInterceptor(chain -> {
+                    Request request = chain.request().newBuilder()
+                            .addHeader("Connection", "close")
+//                            .addHeader("Transfer-Encoding", "chunked")
+                            .build();
+                    return chain.proceed(request);
+                });
+
+//        builder.addInterceptor(interceptor);
+        return builder.build();
     }
 
     public Intent getPickImageChooserIntent() {
@@ -303,9 +548,8 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     private Uri getCaptureImageOutputUri() {
         Uri outputFileUri = null;
         File getImage = getExternalFilesDir("");
-//        if(!getImage.exists()) getImage.mkdirs();
         if (getImage != null) {
-            outputFileUri = Uri.fromFile(new File(getImage.getPath(), "profile.png"));
+            outputFileUri = Uri.fromFile(new File(getImage.getPath(), "image.png"));
             photoUri = outputFileUri;
         }
         Log.d("outputFileUri",outputFileUri.toString());
@@ -371,6 +615,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 
                         } else if(clipData.getItemCount() > 1 && clipData.getItemCount() <= 5){
                             for(int i=0; i<clipData.getItemCount(); i++){
+
                                 tempUri = clipData.getItemAt(i).getUri();
                                 Log.i("single choice", i+" : "+tempUri.toString());
                                 imagePath = getPathFromURI(tempUri);
@@ -432,6 +677,26 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
                         }
                     }
                 }
+            } else if (requestCode == REQUEST_IMAGE_CAPTURE){
+                Uri test = Uri.fromFile(new File(currentPhotoPath));
+//                saveFile(test);
+
+                imagePath = test.getPath();
+                imageListUri.add(imagePath);
+                realUri.add(test);
+                if (imagePath != null) {
+                    mBitmap.add(BitmapFactory.decodeFile(imagePath));
+                    Log.d("mBitmap",mBitmap.get(0).toString());
+                    imageView1.setImageBitmap(mBitmap.get(0));
+                    Log.d("imageView1","성공");
+
+                    f1 = new File(imagePath);
+                    textView2.setText(textView2.getText().toString()
+                            +"\n1.path: "+imagePath+"\n"
+                            +"2.name: "+f1.getName()+"\n"
+                            +"3.size: "+f1.length()+"\n"
+                            +"4.mimeType: "+getContentResolver().getType(test)+"\n");
+                }
             }
         } else{
             Log.d("e","사진 업로드 실패");
@@ -450,6 +715,17 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     public String getImageFilePath(Intent data) { return getImageFromFilePath(data); }
 
     private String getPathFromURI(Uri contentUri) {
+//        String[] projection = new String[]{
+//                MediaStore.Images.ImageColumns._ID,
+//                MediaStore.Images.ImageColumns.DATA,
+//                MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
+//                MediaStore.Images.ImageColumns.DATE_TAKEN,
+//                MediaStore.Images.ImageColumns.MIME_TYPE,
+//                MediaStore.Images.ImageColumns.DISPLAY_NAME,
+//        };
+//        Cursor cursor = this.getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+//                projection, null, null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC");
+
         String[] proj = {MediaStore.Audio.Media.DATA};
         Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
         int column_index = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
@@ -457,18 +733,25 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         return cursor.getString(column_index);
     }
 
+
     private void multipartImageUpload(int index) {
+
         try {
+            serviceApi = getClient().create(ServiceApi.class);
+
             String user_id = "abc";
             String user_email = "abc@gmail.com";
+
+            Log.d("imageListUri", imageListUri.get(index));
+            Log.d("realUri", String.valueOf(realUri.get(index)));
 
 //            File filesDir = getApplicationContext().getFilesDir();
 //            File file = new File(filesDir, "image" + ".png");
 
             File file = new File(imageListUri.get(index));
-//
+
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            mBitmap.get(index).compress(Bitmap.CompressFormat.PNG, 0, bos);
+            mBitmap.get(index).compress(Bitmap.CompressFormat.PNG, 50, bos);
             byte[] bitmapdata = bos.toByteArray();
 
             FileOutputStream fos = new FileOutputStream(file);
@@ -477,12 +760,53 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
             fos.close();
 
 
-//            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-//            MultipartBody.Part body = MultipartBody.Part.createFormData("file", file.getName(), reqFile);
-//            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+            MultipartBody.Part body = MultipartBody.Part.createFormData("upload", file.getName(), reqFile);
+            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+
+
+            Call<ResponseBody> req = serviceApi.postImage(body, id);
+            req.enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                    if (response.code() == 200) {
+                        textView.setText("postImage Success");
+                        textView.setTextColor(Color.BLUE);
+                    }
+                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    textView.setText("postImage Failed");
+                    textView.setTextColor(Color.RED);
+                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
+                    t.printStackTrace();
+                }
+            });
+
+
+//            Uri returnedUri = Uri.parse("file://"+imageListUri.get(index));
+//            InputStream inputStream = null;
+//            inputStream = getBaseContext().getContentResolver().openInputStream(realUri.get(index));
+//            mBitmap.set(index, BitmapFactory.decodeStream(inputStream));
+//            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+//            mBitmap.get(index).compress(Bitmap.CompressFormat.JPEG, 20, byteArrayOutputStream);
 //
-//            Call<ResponseBody> req = serviceApi.postImage(body, id);
-//            req.enqueue(new Callback<ResponseBody>() {
+//
+//            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+//            ArrayList<MultipartBody.Part> files = new ArrayList<>();
+//            for (int i =0; i<realUri.size(); ++i) {
+//                // Uri 타입의 파일경로를 가지는 RequestBody 객체 생성
+////                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), byteArrayOutputStream.toByteArray());
+//                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+//                // RequestBody로 Multipart.Part 객체 생성
+//                MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileBody);
+//                // 추가
+//                files.add(filePart);
+//            }
+//            Call<ResponseBody> requestfile = serviceApi.request(files, id);
+//            requestfile.enqueue(new Callback<ResponseBody>() {
 //                @Override
 //                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
 //                    if (response.code() == 200) {
@@ -500,48 +824,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 //                    t.printStackTrace();
 //                }
 //            });
-
-            Log.d("imageListUri", imageListUri.get(index));
-            Log.d("realUri", String.valueOf(realUri.get(index)));
-            Uri returnedUri = Uri.parse("file://"+imageListUri.get(index));
-            InputStream inputStream = null;
-            inputStream = getBaseContext().getContentResolver().openInputStream(realUri.get(index));
-            mBitmap.set(index, BitmapFactory.decodeStream(inputStream));
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            mBitmap.get(index).compress(Bitmap.CompressFormat.JPEG, 20, byteArrayOutputStream);
-
-
-            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
-            ArrayList<MultipartBody.Part> files = new ArrayList<>();
-            for (int i =0; i<realUri.size(); ++i) {
-                // Uri 타입의 파일경로를 가지는 RequestBody 객체 생성
-                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), byteArrayOutputStream.toByteArray());
-//                RequestBody fileBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-                // RequestBody로 Multipart.Part 객체 생성
-                MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileBody);
-                // 추가
-                files.add(filePart);
-            }
-            Call<ResponseBody> requestfile = serviceApi.request(files, id);
-            requestfile.enqueue(new Callback<ResponseBody>() {
-                @Override
-                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                    if (response.code() == 200) {
-                        textView.setText("Uploaded Successfully!");
-                        textView.setTextColor(Color.BLUE);
-                    }
-                    Toast.makeText(getBaseContext(), response.code() + " ", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onFailure(Call<ResponseBody> call, Throwable t) {
-                    textView.setText("Uploaded Failed!");
-                    textView.setTextColor(Color.RED);
-                    Toast.makeText(getBaseContext(), "Request failed", Toast.LENGTH_SHORT).show();
-                    t.printStackTrace();
-                }
-            });
-
+//
 //            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
 ////            RequestBody email = RequestBody.create(MediaType.parse("text/plain"), user_email);
 //            map.put("id", id);
@@ -574,7 +857,8 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 //            });
 
 
-        } catch (FileNotFoundException e) {
+        }
+        catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
@@ -620,5 +904,9 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 
         //업로드한 파일의 경로를 firebaseDB에 저장하면 게시판 같은 앱도 구현할 수 있음.
 
+    }
+
+    private void patchEOFException() {
+        System.setProperty("http.keepAlive", "false");
     }
 }
