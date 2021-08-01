@@ -4,7 +4,10 @@ MainActivity
 - 각 액티비티로 이동
 
 MainActivity2
-- UPLOAD FILE(2번째) 버튼 누르면
+- UPLOAD FILE(2번째) 버튼 누르면 반응 없음.
+- 카메라 버튼 에러
+- clipdata == null
+- UPLOAD FILE(5번째) 버튼 누르면 서버 전송.
 
 MainActivity3
 - +버튼 누르면 AlertDialog (사진찍기, 갤러리 선택, 취소)
