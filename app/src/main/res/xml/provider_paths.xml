@@ -13,9 +13,13 @@
         name="files"
         path="." />
 
+<<<<<<< HEAD
     <external-files-path
         name="external_files"
         path="." />
     <!--path="Android/data/com.example.upload2/files/Pictures"-->
+=======
+    <external-files-path name="external_files" path="Android/data/com.example.upload2/files/Pictures" />
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
     <!--<external-path name="my_images" path="Android/data/com.example.upload2" />  외부저장소의 앱 개별 공간 경로 -->
 </paths>

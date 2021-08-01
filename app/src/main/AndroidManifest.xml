@@ -5,6 +5,7 @@
 
     <uses-feature
         android:name="android.hardware.camera"
+<<<<<<< HEAD
         android:required="false" />
     <uses-feature
         android:name="android.hardware.camera.autofocus"
@@ -25,16 +26,46 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
+=======
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="true" />
+<!--    <uses-feature-->
+<!--        android:name="android.hardware.camera.flash"-->
+<!--        android:required="true" />-->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Upload2"
+<<<<<<< HEAD
         android:usesCleartextTraffic="true">
         <activity android:name=".MainActivity6"></activity>
         <activity android:name=".MainActivity5" />
         <activity android:name=".MainActivity4" />
         <activity android:name=".MainActivity3" />
         <activity android:name=".MainActivity2" />
+=======
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true">
+        <activity android:name=".MainActivity2"></activity>
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

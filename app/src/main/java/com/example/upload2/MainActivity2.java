@@ -37,6 +37,14 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+<<<<<<< HEAD
+=======
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;
@@ -74,7 +82,11 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity2 extends AppCompatActivity implements View.OnClickListener{
 
+<<<<<<< HEAD
 //    private final static String BASE_URL = "http://49.50.172.208:8080/";
+=======
+    private final static String BASE_URL = "http://49.50.172.208:8080/";
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
     private final static int MULTIPLE_PERMISSION = 10235;
     private String[] PERMISSIONS = {
             android.Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -84,8 +96,13 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     };
     String currentPhotoPath;
     String mediaPath;
+<<<<<<< HEAD
 //    ServiceApi serviceApi;
 //    Retrofit retrofit = null;
+=======
+    ServiceApi serviceApi;
+    Retrofit retrofit = null;
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
     Uri picUri, photoUri;
     Uri tempUri = null;
     private ArrayList<String> permissionsToRequest;
@@ -98,7 +115,11 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     private final static int REQUEST_IMAGE_CAPTURE = 130;
 
     private static final int REQUEST_CAMERA = 100;
+<<<<<<< HEAD
     private String cacheFilePath;
+=======
+    private String cacheFilePath = null;
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 
     ArrayList<Bitmap> mBitmap = new ArrayList<>();
     Bitmap mBitmap1;
@@ -107,14 +128,21 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     private ImageView imageView1,imageView2,imageView3,imageView4,imageView5;
 
     String[] filePathColumn = { MediaStore.Video.Media.DATA };
+<<<<<<< HEAD
     String imagePath;
+=======
+    String imagePath = null;
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
     ArrayList<String> imageListUri = new ArrayList<>();
     ArrayList<Uri> realUri = new ArrayList<>();
     File f1;
 
+<<<<<<< HEAD
     public static final int PICK_IMAGE = 100;
     private String filePath;
 
+=======
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -137,14 +165,21 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         select.setOnClickListener(this);
         upload.setOnClickListener(this);
 
+<<<<<<< HEAD
         askPermissions();
 
+=======
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 //        if (!hasPermissions(getBaseContext(), PERMISSIONS)) {
 //            ActivityCompat.requestPermissions(MainActivity2.this, PERMISSIONS, MULTIPLE_PERMISSION);
 //        } else {
 //            /*..권한이 있는경우 실행할 코드....*/
 //        }
+<<<<<<< HEAD
 
+=======
+        askPermissions();
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 //        initRetrofitClient();
     }
 
@@ -154,12 +189,15 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
             case R.id.button:
                 finish();
                 break;
+<<<<<<< HEAD
             case R.id.btn_upload:
                 Intent intent = new Intent();
                     intent.setType("image/*");
                     intent.setAction(Intent.ACTION_GET_CONTENT);
                     startActivityForResult(Intent.createChooser(intent, "Select Image"), PICK_IMAGE);
                 break;
+=======
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
             case R.id.camera:
 //                checkPermission();
 //                camera_open_intent();
@@ -171,7 +209,14 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
                 break;
             case R.id.upload:
                 if (mBitmap != null){
+<<<<<<< HEAD
                     multipartImageUpload();
+=======
+                    for (int i = 0; i < mBitmap.size(); i++){
+                        multipartImageUpload(i);
+//                        FirebaseUpload(i);
+                    }
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
                 }
                 else {
                     Toast.makeText(getBaseContext(), "Bitmap is null. Try again", Toast.LENGTH_SHORT).show();
@@ -469,6 +514,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 //        serviceApi = retrofit.create(ServiceApi.class);
 //    }
 
+<<<<<<< HEAD
 //    public Retrofit getClient() {
 //        if (retrofit==null) {
 //            retrofit = new Retrofit.Builder()
@@ -521,6 +567,42 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 ////        builder.addInterceptor(interceptor);
 //        return client;
 //    }
+=======
+    public Retrofit getClient() {
+        if (retrofit==null) {
+            retrofit = new Retrofit.Builder()
+                    .baseUrl(BASE_URL)
+                    .client(createOkHttpClient())
+                    .addConverterFactory(new NullOnEmptyConverterFactory())
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build();
+        }
+        return retrofit;
+    }
+
+    public OkHttpClient createOkHttpClient() {
+        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+
+        // 네트워크 통신 로그(서버로 보내는 파라미터 및 받는 파라미터) 보기
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                .connectTimeout(100, TimeUnit.SECONDS)
+                .readTimeout(100, TimeUnit.SECONDS)
+                .writeTimeout(100, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .addInterceptor(interceptor)
+                .addInterceptor(chain -> {
+                    Request request = chain.request().newBuilder()
+                            .addHeader("Connection", "close")
+//                            .addHeader("Transfer-Encoding", "chunked")
+                            .build();
+                    return chain.proceed(request);
+                });
+
+//        builder.addInterceptor(interceptor);
+        return builder.build();
+    }
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 
     public Intent getPickImageChooserIntent() {
         Uri outputFileUri = getCaptureImageOutputUri();
@@ -718,6 +800,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
                             +"3.size: "+f1.length()+"\n"
                             +"4.mimeType: "+getContentResolver().getType(test)+"\n");
                 }
+<<<<<<< HEAD
             } else if(requestCode == PICK_IMAGE){
                 Uri selectedImage = data.getData();
                 String[] filePathColumn = {MediaStore.Images.Media.DATA};
@@ -755,6 +838,10 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 //                });
 
         }} else{
+=======
+            }
+        } else{
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
             Log.d("e","사진 업로드 실패");
         }
 
@@ -790,6 +877,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
     }
 
 
+<<<<<<< HEAD
     private void multipartImageUpload() {
 
         try {
@@ -828,6 +916,40 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
             RequestBody id = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(user_id));
 
             Call<ResponseBody> req = serviceApi.imageTest(files, id);
+=======
+    private void multipartImageUpload(int index) {
+
+        try {
+            serviceApi = getClient().create(ServiceApi.class);
+
+            String user_id = "abc";
+            String user_email = "abc@gmail.com";
+
+            Log.d("imageListUri", imageListUri.get(index));
+            Log.d("realUri", String.valueOf(realUri.get(index)));
+
+//            File filesDir = getApplicationContext().getFilesDir();
+//            File file = new File(filesDir, "image" + ".png");
+
+            File file = new File(imageListUri.get(index));
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            mBitmap.get(index).compress(Bitmap.CompressFormat.PNG, 50, bos);
+            byte[] bitmapdata = bos.toByteArray();
+
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(bitmapdata);
+            fos.flush();
+            fos.close();
+
+
+            RequestBody reqFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+            MultipartBody.Part body = MultipartBody.Part.createFormData("upload", file.getName(), reqFile);
+            RequestBody id = RequestBody.create(MediaType.parse("text/plain"), user_id);
+
+
+            Call<ResponseBody> req = serviceApi.postImage(body, id);
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
             req.enqueue(new Callback<ResponseBody>() {
                 @Override
                 public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -848,6 +970,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
             });
 
 
+<<<<<<< HEAD
 
 //            File filesDir = getApplicationContext().getFilesDir();
 //            File file = new File(filesDir, "image" + ".png");
@@ -919,6 +1042,8 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 //            });
 
 
+=======
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 //            Uri returnedUri = Uri.parse("file://"+imageListUri.get(index));
 //            InputStream inputStream = null;
 //            inputStream = getBaseContext().getContentResolver().openInputStream(realUri.get(index));
@@ -998,6 +1123,7 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
         }
     }
 
+<<<<<<< HEAD
 //    public void FirebaseUpload(int index) {
 //        //firebase storage에 업로드하기
 //        //1. FirebaseStorage을 관리하는 객체 얻어오기
@@ -1042,4 +1168,50 @@ public class MainActivity2 extends AppCompatActivity implements View.OnClickList
 //    private void patchEOFException() {
 //        System.setProperty("http.keepAlive", "false");
 //    }
+=======
+    public void FirebaseUpload(int index) {
+        //firebase storage에 업로드하기
+        //1. FirebaseStorage을 관리하는 객체 얻어오기
+        FirebaseStorage firebaseStorage= FirebaseStorage.getInstance();
+
+        //2. 업로드할 파일의 node를 참조하는 객체
+        //파일 명이 중복되지 않도록 날짜를 이용
+        SimpleDateFormat sdf= new SimpleDateFormat("yyyyMMddhhmmss");
+        String filename= sdf.format(new Date())+ ".png";//현재 시간으로 파일명 지정 20191023142634
+        //원래 확장자는 파일의 실제 확장자를 얻어와서 사용해야함. 그러려면 이미지의 절대 주소를 구해야함.
+
+        StorageReference imgRef= firebaseStorage.getReference("uploads/"+filename);
+        //uploads라는 폴더가 없으면 자동 생성
+
+        //참조 객체를 통해 이미지 파일 업로드
+        // imgRef.putFile(imgUri);
+        //업로드 결과를 받고 싶다면..
+        try {
+            if (tempUri == null){
+                imgRef.putFile(photoUri);
+                Log.i("photoUri","upload 성공");
+            } else{
+                InputStream stream = new FileInputStream(String.valueOf(realUri.get(index)));
+                UploadTask uploadTask =imgRef.putStream(stream);
+//            UploadTask uploadTask =imgRef.putFile(Uri.parse(imageListUri.get(index)));
+                uploadTask.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        Log.i(String.valueOf(index),"upload 성공");
+                        Toast.makeText(getBaseContext(), String.valueOf(index)+": success upload", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        //업로드한 파일의 경로를 firebaseDB에 저장하면 게시판 같은 앱도 구현할 수 있음.
+
+    }
+
+    private void patchEOFException() {
+        System.setProperty("http.keepAlive", "false");
+    }
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 }

@@ -23,12 +23,15 @@
                 android:text="activity1" />
 
             <Button
+<<<<<<< HEAD
                 android:id="@+id/btn_upload"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Upload File" />
 
             <Button
+=======
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
                 android:id="@+id/camera"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

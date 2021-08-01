@@ -27,10 +27,13 @@ public interface ServiceApi {
     @Multipart
     @POST("/users/image/new")
     Call<ResponseBody> request(@Part ArrayList<MultipartBody.Part> files, @Part("id") RequestBody id);
+<<<<<<< HEAD
 
     @Multipart
     @POST("/users/image/new")
     Call<ResponseBody> imageTest(@Part List<MultipartBody.Part> files, @Part("id") RequestBody id);
 
 
+=======
+>>>>>>> bf53af2d47e29451d53397e5e0cea36bbab786eb
 }
